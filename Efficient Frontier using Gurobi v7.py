@@ -193,7 +193,6 @@ for ticker in stocks[1:]:
     stk_beta[ticker] = tkr.info['beta']
 stk_beta
 
-#market_ret[-1]
 
 #cl_price = pd.read_csv("C:\\Users\\Meekey\\Documents\\CAPM\\temp.csv")
 #cl_price.Date = pd.to_datetime(cl_price.Date)
@@ -209,38 +208,14 @@ stk_beta
 
 
 #calculate yearly stk exp return
-# mkt_annual_growth = 0.95
 annual_expected_stock_ret = {}
 for ticker in stk_beta:
     annual_expected_stock_ret[ticker] = rf + stk_beta[ticker] * (mkt_annual_growth - rf)
 
 annual_expected_stock_ret = pd.core.series.Series(annual_expected_stock_ret)
 
-#stats = pd.DataFrame()
-#def performance_statistics(data):
-##    change = (data /  data.shift()- 1).iloc[1:]
-##    stats = pd.concat((change.mean(), change.std(), data.iloc[-1] / data.iloc[0] - 1.0),axis=1)
-#    #print(data.mean(), data.std(), (data + 1).prod()-1)
-#    stats = pd.concat((data.mean(), data.std(), (data + 1).prod()-1),axis=1)
-#    stats.columns = ['Mean return', 'Standard deviation', 'Total return']
-#    return stats
-#stats = performance_statistics(cl_price_ret)
-#stats
-
-#weights = np.random.random_sample((len(stocks)-1))
-#weights = weights/np.sum(weights)
-#weights = [0.1, 0.1, 0.15, 0.35, 0.1, 0.1, 0.1]
-#weights = np.array([0.2,0.1,0.1,0.1,0.25,0.25])
-#weights
 
 from gurobipy import *
-
-
-
-#ret = [0.01,0.011,0.012,0.013,0.014,0.015,0.016,0.017,0.018,0.019,0.02,0.021,
-#       0.022,0.023,0.024,0.025,0.026,0.027,0.028,0.029,0.03,0.031,0.032,0.033,
-#       0.034,0.035,0.036,0.037,0.038,0.039,0.04
-#       ]
 syms = matrix_cov_stock_ret.columns
 pd.set_option('display.max_rows', None)
 ret_st =  20
@@ -312,18 +287,12 @@ ret4_min_risk = efficient_frontier_table['ret'][efficient_frontier_table['risk']
 #ret4_min_risk = efficient_frontier_table['ret'][efficient_frontier_table['risk']>cal_wts4_exp_ret]
 wts4_min_risk = df[ret4_min_risk + addn_risk]
 
-
+wts4_min_risk = df[0.075]
 wts4_min_risk.columns = ['wts']
 #annual growth
 
 #saving weights to backtest
 wts4_min_risk.to_csv("C:\\Users\\Meekey\\Documents\\CAPM\\Spyder Code\\port_wts.csv")
-
-
-
-
-
-
 
 bar_colors = list(Viridis[256][len(wts4_min_risk.T.columns)+1])
 # wts4_min_risk.plot.bar(title = 'ret:{},risk:{}'.format(ret4_min_risk,round(min(risk),2)), color = bar_colors.pop())
@@ -340,7 +309,9 @@ weighted_expected_stock_return = pd.concat((weighted_expected_stock_return,annua
 wt_exp_port_monthly_ret = np.sum(weighted_expected_stock_return.iloc[:,0]*weighted_expected_stock_return.iloc[:,-1])
 wt_exp_port_monthly_ret
 
-wt_exp_port_std = np.sum(weighted_expected_stock_return.iloc[:,0]*cl_price_ret.std())
+# wt_exp_port_std = np.sum(weighted_expected_stock_return.iloc[:,0]*cl_price_ret.std()*np.sqrt(12))
+wt_exp_port_std = np.sum(weighted_expected_stock_return.iloc[:,0]*weighted_expected_stock_return.iloc[:,1])
+
 wt_exp_port_std
 
 sharpe_ratio = (wt_exp_port_monthly_ret - rf)/wt_exp_port_std
@@ -365,25 +336,22 @@ risk[int(len(risk)/2)]
 #sharpe_ratio = (wt_exp_port_monthly_ret - rf)/min(risk)
 # sharpe_ratio = (wt_exp_port_monthly_ret - rf)/min(risk)
 
+def hpr(DF):
+    df = DF.copy()
+    hpr = (df.iloc[-1] - df.iloc[0])/df.iloc[0]
+    return hpr
 
-
+stk_grwth = stk_annual_growth.T.copy()
+ret = cl_price_ret.copy()
+price_for_hpr = cl_price.copy()
 stats = pd.DataFrame()
-def performance_statistics(data):
-#    change = (data /  data.shift()- 1).iloc[1:]
-#    stats = pd.concat((change.mean(), change.std(), data.iloc[-1] / data.iloc[0] - 1.0),axis=1)
-    #print(data.mean(), data.std(), (data + 1).prod()-1)
-    stats = pd.concat((data.mean(), data.std()*np.sqrt(12), (data + 1).prod()-1),axis=1)
-   #stats = pd.concat((stock_rolling_mean, stock_rolling_var, (data + 1).prod()-1),axis=1)
-    stats.columns = ['Mean return', 'Standard deviation', 'Total return']
+def performance_statistics(stk_grwth, ret, price_for_hpr):
+    stats = pd.concat((stk_grwth, ret.std()*sqrt(12), 
+                       ((price_for_hpr.iloc[-1, :] - price_for_hpr.iloc[0, :])/price_for_hpr.iloc[0, :])), axis = 1)
+    stats.columns = ['CAGR', 'Volatility', 'HPR']
     return stats
-#calculate stats on last 12 months return
-stats = performance_statistics(cl_price_ret[-12:-1])
+stats = performance_statistics(stk_annual_growth.T, cl_price_ret, cl_price)
 stats
 
-cl_price_ret[-12:-1].std() * np.sqrt(12)
 
-t = len(cum_stock_ret)/12
-stk_annual_growth = (cum_stock_ret.tail(1))**(1/t) - 1
-mkt_annual_growth = (cum_market_ret[-1])**(1/t) - 1
-stk_annual_growth['market'] = mkt_annual_growth
 
